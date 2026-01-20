@@ -71,24 +71,7 @@ const LSOrollCalculator = () => {
         };
       }
 
-      // MA-DO RULES FOR OTM
-      // CTM: binnen 1% boven strike EN minimaal $0.25 verschil
-      if (otmPercentage <= 1 && absoluteDifference >= 0.25) {
-        const targetFriday = getNextFriday(1);
-        return {
-          percentage: otmPercentage.toFixed(2),
-          absoluteDiff: absoluteDifference.toFixed(2),
-          weeksToRoll: 1,
-          status: 'ctm',
-          tier: 'CTM',
-          targetDate: formatFriday(targetFriday),
-          color: '#F97316',
-          icon: '⚠',
-          advice: 'Check 1u voor close'
-        };
-      }
-
-      // Safe OTM
+      // MA-DO RULES FOR OTM: altijd geen actie, ongeacht hoe dichtbij
       return {
         percentage: otmPercentage.toFixed(2),
         absoluteDiff: absoluteDifference.toFixed(2),
@@ -193,8 +176,7 @@ const LSOrollCalculator = () => {
     { range: 'CTM', desc: '≤1% ($0.25 min)', weeks: 1, color: '#F97316', label: 'Roll', icon: '⚠' },
     { range: 'ITM', desc: 'In the money', weeks: 1, color: '#F97316', label: 'Roll', icon: '↻' },
   ] : [
-    { range: 'OTM', desc: '> 1% boven strike', weeks: 0, color: '#22c55e', label: 'Hold', icon: '✓' },
-    { range: 'CTM', desc: '≤1% ($0.25 min)', weeks: 1, color: '#F97316', label: '+1 wk', icon: '⚠' },
+    { range: 'OTM', desc: 'Boven strike', weeks: 0, color: '#22c55e', label: 'Hold', icon: '✓' },
     { range: '0-5%', desc: 'ITM', weeks: 0, color: '#22c55e', label: 'Hold', icon: '✓' },
     { range: '5-10%', desc: 'ITM', weeks: 1, color: '#FDE68A', label: '+1 wk', icon: '↻' },
     { range: '10-15%', desc: 'ITM', weeks: 2, color: '#86EFAC', label: '+2 wk', icon: '↻↻' },
@@ -343,10 +325,9 @@ const LSOrollCalculator = () => {
                     (tier.range === 'ITM' && calculation.status === 'itm')
                   );
                 } else {
-                  // Ma-Do matching
+                  // Ma-Do matching (geen CTM op ma-do)
                   isActive = (
                     (tier.range === 'OTM' && calculation.status === 'otm') ||
-                    (tier.range === 'CTM' && calculation.status === 'ctm') ||
                     (tier.range === '0-5%' && calculation.status === 'itm-safe') ||
                     (tier.range === '5-10%' && calculation.tier === '5-10%') ||
                     (tier.range === '10-15%' && calculation.tier === '10-15%') ||
