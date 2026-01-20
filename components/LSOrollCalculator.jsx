@@ -167,7 +167,7 @@ const LSOrollCalculator = () => {
       tier = '20%+';
       color = '#DDD6FE';
       icon = '↻↻↻↻';
-      advice = 'Kortst mogelijke expiry, 1%/week avg, max 6 weken';
+      advice = 'Max 6wk, check 21 dagen voor expiry!';
     }
 
     const targetFriday = getNextFriday(weeksToRoll);
@@ -417,6 +417,7 @@ const LSOrollCalculator = () => {
         {/* Footer */}
         <div style={{textAlign: 'center', marginTop: '1rem', color: '#475569', fontSize: '10px'}}>
           <p style={{margin: '0 0 0.25rem 0', color: '#F97316', fontWeight: '500'}}>ALTIJD zelfde strike - nooit up/down</p>
+          <p style={{margin: '0 0 0.25rem 0'}}>4-6wk roll? Check 21 dagen voor expiry!</p>
           <p style={{margin: '0 0 0.25rem 0'}}>CTM check: 1u voor market close</p>
           <p style={{margin: 0, color: '#64748b'}}>Bij twijfel/stress: roll 1 week</p>
         </div>
