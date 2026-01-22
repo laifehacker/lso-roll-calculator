@@ -47,6 +47,9 @@ UPDATE TRIGGERS:
 - CET timezone hardcoded op Amsterdam (`Europe/Amsterdam`), coördinaten 52.3676 / 4.9041
 - Sunrise/sunset berekend client-side (geen API) via NOAA-formule; slaat tijden op in `sunSchedule`
 - Theme switch: dag = tussen sunrise en sunset; nacht = anders. Volgende check gepland op eerstvolgende sunrise/sunset.
+- **Handmatige toggle:** Klik op dag/nacht badge om te wisselen. `•` indicator toont handmatige modus.
+- **Auto reset:** "Auto" knop verschijnt bij handmatige override om terug te gaan naar automatisch.
+- **Theme-aware kleuren:** `themePalette.day` en `themePalette.night` bevatten `accent*` kleuren voor contrast.
 - Header toont dag/nacht badge + sunrise/sunset tijden in CET
 
 ---
@@ -66,7 +69,8 @@ UPDATE TRIGGERS:
 | `currentPrice` | `string` | De huidige koers van het onderliggend |
 | `premiums` | `{ week1, week2, week3, weekN }` | Premium per expiry voor vergelijking |
 | `customWeeks` | `string` | Aantal weken voor custom expiry (default: 4) |
-| `themeMode` | `'day' \| 'night'` | Automatisch ingesteld op basis van CET sunrise/sunset |
+| `themeMode` | `'day' \| 'night'` | Actieve thema (auto of handmatig) |
+| `manualTheme` | `null \| 'day' \| 'night'` | Handmatige override (`null` = auto) |
 | `sunSchedule` | `{ sunrise: Date \| null, sunset: Date \| null }` | Laatste berekende CET zonsopgang/-ondergang |
 
 **Features:**
@@ -86,6 +90,9 @@ UPDATE TRIGGERS:
 - `calculation` - useMemo hook met ITM/OTM berekeningen
 - `handlePremiumChange(key, value)` - Update individuele premium in state
 - `premiumComparison` - useMemo hook die alle expiry entries berekent + beste keuze bepaalt
+- `toggleTheme()` - Wissel tussen dag/nacht (zet manualTheme)
+- `resetToAuto()` - Reset naar automatische sunrise/sunset detectie
+- `getStatusColors(status, tier)` - Geeft theme-aware kleuren terug voor status/tier
 
 **Usage:**
 ```jsx

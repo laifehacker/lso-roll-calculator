@@ -619,28 +619,48 @@ const LSOrollCalculator = () => {
               >
                 {friday ? 'VRIJDAG' : 'MA-DO'}
               </span>
-              <button
+{/* Theme Toggle Switch */}
+              <div
                 onClick={toggleTheme}
                 style={{
-                  fontSize: '10px',
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
-                  backgroundColor: themeMode === 'day' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(99, 102, 241, 0.2)',
-                  color: themeMode === 'day' ? '#ca8a04' : '#c7d2fe',
-                  fontWeight: '700',
-                  letterSpacing: '0.02em',
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '0.25rem',
-                  border: 'none',
+                  gap: '0.375rem',
                   cursor: 'pointer',
-                  transition: 'transform 0.1s ease'
+                  padding: '0.125rem 0.25rem',
+                  borderRadius: '9999px',
+                  backgroundColor: themeMode === 'day' ? 'rgba(234, 179, 8, 0.12)' : 'rgba(99, 102, 241, 0.15)'
                 }}
-                title={manualTheme ? 'Klik om te wisselen (handmatig)' : 'Klik om handmatig te wisselen'}
+                title={manualTheme ? 'Schuif om te wisselen (handmatig)' : 'Schuif om handmatig te wisselen'}
               >
-                {themeMode === 'day' ? '☀ Dag' : '🌙 Nacht'}
-                {manualTheme && <span style={{ fontSize: '8px', opacity: 0.7 }}>•</span>}
-              </button>
+                <span style={{ fontSize: '10px', opacity: themeMode === 'day' ? 1 : 0.4 }}>☀</span>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '14px',
+                    borderRadius: '9999px',
+                    backgroundColor: themeMode === 'day' ? '#ca8a04' : '#6366f1',
+                    position: 'relative',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      position: 'absolute',
+                      top: '2px',
+                      left: themeMode === 'day' ? '2px' : '16px',
+                      transition: 'left 0.2s ease',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: '10px', opacity: themeMode === 'night' ? 1 : 0.4 }}>🌙</span>
+                {manualTheme && <span style={{ fontSize: '6px', color: palette.label }}>•</span>}
+              </div>
             </div>
             <div style={{ fontSize: '10px', color: palette.label, display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span>🌅 {sunriseLabel} CET</span>

@@ -10,7 +10,7 @@ UPDATE TRIGGERS:
 
 ## Current Focus
 
-> Currently working on: v2.0 complete - multi-expiry premium vergelijker
+> Currently working on: v2.1 complete - contrast fix, theme toggle, favicon
 
 ## Project Vision
 
@@ -90,6 +90,11 @@ Geen actieve blockers.
   - **Vergelijking:** toont totaal % en %/wk per optie
   - **BEST label:** markeert hoogste yield/week automatisch
   - Vervangt oude enkele premium check
+- v2.1 polish:
+  - **Contrast fix:** Theme-aware accentkleuren (dag=donker, nacht=helder)
+  - **Theme toggle:** Klikbare dag/nacht badge + Auto reset button
+  - **%/wk primair:** Yield/week nu groot, totaal % klein
+  - **Favicon:** Custom PNG (128x128)
 
 ## Notes for Next Session
 

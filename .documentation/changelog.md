@@ -13,6 +13,26 @@ UPDATE TRIGGERS:
 - When user says "log this", "changelog"
 -->
 
+## [2.1.0] - 2026-01-22
+
+### Added
+- **Theme toggle:** Klikbare dag/nacht badge voor handmatige override
+- **Auto button:** Reset naar automatische sunrise/sunset detectie
+- **Favicon:** Custom PNG favicon (128x128)
+
+### Changed
+- **%/wk nu primair:** Yield per week nu groot weergegeven, totaal % klein met "tot" suffix
+- **Contrast fix:** Theme-aware accentkleuren (donker voor dag, helder voor nacht)
+- Roll tiers en status cards gebruiken nu `palette.accent*` kleuren
+
+### Technical Notes
+- `manualTheme` state: `null` (auto) | `'day'` | `'night'`
+- `toggleTheme()` en `resetToAuto()` functies
+- `getStatusColors(status, tier)` helper voor theme-aware kleuren
+- `themePalette` uitgebreid met `accentGreen`, `accentYellow`, `accentOrange`, `accentBlue`, `accentPurple` + `*Bg` variants
+
+---
+
 ## [2.0.0] - 2026-01-22
 
 ### Added
