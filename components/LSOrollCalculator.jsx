@@ -163,58 +163,239 @@ const isFridayCET = () => {
   return weekday.toLowerCase().startsWith('fri');
 };
 
+// === US Market Holiday Calculations ===
+
+// Get Nth weekday of month (e.g., 3rd Monday: weekday=1, n=3)
+const getNthWeekdayOfMonth = (year, month, weekday, n) => {
+  const firstDay = new Date(year, month, 1);
+  const firstWeekday = firstDay.getDay();
+  let day = 1 + ((weekday - firstWeekday + 7) % 7) + (n - 1) * 7;
+  return new Date(year, month, day);
+};
+
+// Get last weekday of month (e.g., last Monday of May)
+const getLastWeekdayOfMonth = (year, month, weekday) => {
+  const lastDay = new Date(year, month + 1, 0);
+  const lastWeekday = lastDay.getDay();
+  const diff = (lastWeekday - weekday + 7) % 7;
+  return new Date(year, month, lastDay.getDate() - diff);
+};
+
+// Easter Sunday calculation (Anonymous Gregorian algorithm)
+const getEasterSunday = (year) => {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+};
+
+// Get observed date for fixed holidays (Sat→Fri, Sun→Mon)
+const getObservedDate = (year, month, day) => {
+  const date = new Date(year, month, day);
+  const dayOfWeek = date.getDay();
+  if (dayOfWeek === 6) return new Date(year, month, day - 1); // Saturday → Friday
+  if (dayOfWeek === 0) return new Date(year, month, day + 1); // Sunday → Monday
+  return date;
+};
+
+// Format date as YYYY-MM-DD string
+const formatDateStr = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+// Get all US market holidays for a year (returns Set of YYYY-MM-DD strings)
+const getUSMarketHolidays = (year) => {
+  const holidays = new Set();
+
+  // New Year's Day (Jan 1)
+  holidays.add(formatDateStr(getObservedDate(year, 0, 1)));
+
+  // MLK Day (3rd Monday of January)
+  holidays.add(formatDateStr(getNthWeekdayOfMonth(year, 0, 1, 3)));
+
+  // Presidents' Day (3rd Monday of February)
+  holidays.add(formatDateStr(getNthWeekdayOfMonth(year, 1, 1, 3)));
+
+  // Good Friday (Friday before Easter)
+  const easter = getEasterSunday(year);
+  const goodFriday = new Date(easter);
+  goodFriday.setDate(easter.getDate() - 2);
+  holidays.add(formatDateStr(goodFriday));
+
+  // Memorial Day (last Monday of May)
+  holidays.add(formatDateStr(getLastWeekdayOfMonth(year, 4, 1)));
+
+  // Juneteenth (June 19)
+  holidays.add(formatDateStr(getObservedDate(year, 5, 19)));
+
+  // Independence Day (July 4)
+  holidays.add(formatDateStr(getObservedDate(year, 6, 4)));
+
+  // Labor Day (1st Monday of September)
+  holidays.add(formatDateStr(getNthWeekdayOfMonth(year, 8, 1, 1)));
+
+  // Thanksgiving (4th Thursday of November)
+  holidays.add(formatDateStr(getNthWeekdayOfMonth(year, 10, 4, 4)));
+
+  // Christmas (Dec 25)
+  holidays.add(formatDateStr(getObservedDate(year, 11, 25)));
+
+  return holidays;
+};
+
+// Get early close days (1:00 PM ET close) for a year
+const getEarlyCloseDays = (year) => {
+  const earlyClose = new Set();
+
+  // Day before Independence Day (July 3) - if weekday
+  const july3 = new Date(year, 6, 3);
+  if (july3.getDay() !== 0 && july3.getDay() !== 6) {
+    earlyClose.add(formatDateStr(july3));
+  }
+
+  // Black Friday (day after Thanksgiving)
+  const thanksgiving = getNthWeekdayOfMonth(year, 10, 4, 4);
+  const blackFriday = new Date(thanksgiving);
+  blackFriday.setDate(thanksgiving.getDate() + 1);
+  earlyClose.add(formatDateStr(blackFriday));
+
+  // Christmas Eve (Dec 24) - if weekday
+  const dec24 = new Date(year, 11, 24);
+  if (dec24.getDay() !== 0 && dec24.getDay() !== 6) {
+    earlyClose.add(formatDateStr(dec24));
+  }
+
+  return earlyClose;
+};
+
+// Cache holidays for performance
+let holidayCache = { year: null, holidays: null, earlyClose: null };
+const getHolidaysForYear = (year) => {
+  if (holidayCache.year !== year) {
+    holidayCache = {
+      year,
+      holidays: getUSMarketHolidays(year),
+      earlyClose: getEarlyCloseDays(year)
+    };
+  }
+  return holidayCache;
+};
+
 const getMarketStatus = () => {
   const now = new Date();
-  const nyTime = new Intl.DateTimeFormat('en-US', {
+
+  // Get NY time components
+  const nyFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     weekday: 'short',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: false
-  }).formatToParts(now);
+  });
+  const nyParts = {};
+  nyFormatter.formatToParts(now).forEach(p => { nyParts[p.type] = p.value; });
 
-  const parts = {};
-  nyTime.forEach(p => { parts[p.type] = p.value; });
+  const nyYear = parseInt(nyParts.year, 10);
+  const nyMonth = parseInt(nyParts.month, 10);
+  const nyDay = parseInt(nyParts.day, 10);
+  const weekday = nyParts.weekday;
+  const hour = parseInt(nyParts.hour, 10);
+  const minute = parseInt(nyParts.minute, 10);
+  const second = parseInt(nyParts.second, 10);
 
-  const weekday = parts.weekday;
-  const hour = parseInt(parts.hour, 10);
-  const minute = parseInt(parts.minute, 10);
-  const second = parseInt(parts.second, 10);
-
+  const todayStr = `${nyYear}-${String(nyMonth).padStart(2, '0')}-${String(nyDay).padStart(2, '0')}`;
   const currentMinutes = hour * 60 + minute;
-  const marketOpen = 9 * 60 + 30; // 9:30 AM ET
-  const marketClose = 16 * 60; // 4:00 PM ET
+
+  // Get holidays (cache both current and next year for year boundaries)
+  const { holidays, earlyClose } = getHolidaysForYear(nyYear);
+  const nextYearData = getHolidaysForYear(nyYear + 1);
 
   const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+  const isHoliday = holidays.has(todayStr);
+  const isEarlyClose = earlyClose.has(todayStr);
+
+  const marketOpen = 9 * 60 + 30; // 9:30 AM ET
+  const marketClose = isEarlyClose ? 13 * 60 : 16 * 60; // 1:00 PM or 4:00 PM ET
+
+  const isTradingDay = !isWeekend && !isHoliday;
   const isMarketHours = currentMinutes >= marketOpen && currentMinutes < marketClose;
-  const isOpen = !isWeekend && isMarketHours;
+  const isOpen = isTradingDay && isMarketHours;
+
+  // Helper to check if a date is a trading day
+  const isTradingDayCheck = (dateStr, yr) => {
+    const d = new Date(dateStr);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) return false;
+    const h = yr === nyYear ? holidays : (yr === nyYear + 1 ? nextYearData.holidays : getUSMarketHolidays(yr));
+    return !h.has(dateStr);
+  };
 
   let targetTime;
+
   if (isOpen) {
     // Market is open, count down to close
-    const secondsUntilClose = (marketClose - currentMinutes) * 60 - second;
-    targetTime = secondsUntilClose;
+    targetTime = (marketClose - currentMinutes) * 60 - second;
   } else {
-    // Market is closed, count down to open
-    let daysUntilOpen = 0;
+    // Market is closed, find next trading day
+    let daysAhead = 0;
+    let searchDate = new Date(nyYear, nyMonth - 1, nyDay);
 
-    if (weekday === 'Sat') {
-      daysUntilOpen = 2;
-    } else if (weekday === 'Sun') {
-      daysUntilOpen = 1;
-    } else if (currentMinutes >= marketClose) {
-      // After market close on weekday
-      daysUntilOpen = weekday === 'Fri' ? 3 : 1;
+    // If before market open on a trading day, we open today
+    if (isTradingDay && currentMinutes < marketOpen) {
+      daysAhead = 0;
+    } else {
+      // Find next trading day
+      daysAhead = 1;
+      searchDate.setDate(searchDate.getDate() + 1);
+
+      // Search up to 10 days ahead (handles holiday clusters)
+      for (let i = 0; i < 10; i++) {
+        const searchStr = formatDateStr(searchDate);
+        const searchYear = searchDate.getFullYear();
+        if (isTradingDayCheck(searchStr, searchYear)) {
+          break;
+        }
+        daysAhead++;
+        searchDate.setDate(searchDate.getDate() + 1);
+      }
     }
-    // Before market open on weekday
 
-    const secondsUntilOpen = daysUntilOpen * 24 * 60 * 60 +
-      (marketOpen - currentMinutes) * 60 - second;
-    targetTime = secondsUntilOpen < 0 ? secondsUntilOpen + 24 * 60 * 60 : secondsUntilOpen;
+    // Calculate seconds until market open
+    const secondsInDay = 24 * 60 * 60;
+    const secondsUntilMidnight = (24 * 60 - currentMinutes) * 60 - second;
+    const secondsFromMidnightToOpen = marketOpen * 60;
+
+    if (daysAhead === 0) {
+      targetTime = (marketOpen - currentMinutes) * 60 - second;
+    } else {
+      targetTime = secondsUntilMidnight + (daysAhead - 1) * secondsInDay + secondsFromMidnightToOpen;
+    }
   }
 
-  return { isOpen, secondsRemaining: Math.max(0, targetTime) };
+  return {
+    isOpen,
+    secondsRemaining: Math.max(0, targetTime),
+    isEarlyClose: isOpen && isEarlyClose,
+    isHoliday
+  };
 };
 
 const formatCountdown = (totalSeconds) => {
@@ -783,7 +964,9 @@ const LSOrollCalculator = () => {
                 }}
               >
                 {marketStatus.isOpen ? '📈' : '⏳'}
-                {marketStatus.isOpen ? 'Sluit over: ' : 'Opent over: '}
+                {marketStatus.isOpen
+                  ? (marketStatus.isEarlyClose ? 'Sluit 13:00: ' : 'Sluit over: ')
+                  : 'Opent over: '}
                 {formatCountdown(marketStatus.secondsRemaining)}
               </span>
               {manualTheme && (

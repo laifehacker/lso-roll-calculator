@@ -13,6 +13,31 @@ UPDATE TRIGGERS:
 - When user says "log this", "changelog"
 -->
 
+## [2.3.0] - 2026-01-22
+
+### Added
+- **US Market Holidays:** Dynamische berekening van alle NYSE/NASDAQ feestdagen
+- **Early close detection:** Black Friday, Christmas Eve, dag voor 4 juli (sluit 13:00 ET)
+- Holidays: New Year, MLK Day, Presidents Day, Good Friday, Memorial Day, Juneteenth, Independence Day, Labor Day, Thanksgiving, Christmas
+- Holiday cache voor performance
+
+### Changed
+- Countdown skipt nu holidays bij berekening volgende handelsdag
+- Display toont "Sluit 13:00:" op early close dagen
+- Zoekt tot 10 dagen vooruit voor volgende handelsdag (dekt holiday clusters)
+
+### Technical Notes
+- `getNthWeekdayOfMonth(year, month, weekday, n)` - berekent Nde weekdag van maand
+- `getLastWeekdayOfMonth(year, month, weekday)` - laatste weekdag van maand
+- `getEasterSunday(year)` - Anonymous Gregorian algoritme voor Pasen
+- `getObservedDate(year, month, day)` - Sat→Fri, Sun→Mon observed regels
+- `getUSMarketHolidays(year)` - Set van holiday date strings
+- `getEarlyCloseDays(year)` - Set van early close date strings
+- `holidayCache` - cached holidays per jaar
+- `marketStatus.isEarlyClose` en `marketStatus.isHoliday` toegevoegd
+
+---
+
 ## [2.2.0] - 2026-01-22
 
 ### Added
