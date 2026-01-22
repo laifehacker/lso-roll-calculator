@@ -13,6 +13,31 @@ UPDATE TRIGGERS:
 - When user says "log this", "changelog"
 -->
 
+## [2.2.0] - 2026-01-22
+
+### Added
+- **Market countdown timer:** Live HH:MM:SS countdown tot beurs sluiting (open) of opening (gesloten)
+- Detecteert NYSE/NASDAQ markturen (9:30-16:00 ET)
+- Weekend-logica: zaterdag telt naar maandag, zondag telt naar maandag
+
+### Changed
+- Header: Zonsopgang/zonsondergang tijden vervangen door market countdown
+- Display: Groen "📈 Sluit over:" als beurs open, grijs "⏳ Opent over:" als gesloten
+
+### Removed
+- Zonsopgang (🌅) en zonsondergang (🌇) labels uit header
+- `formatTimeForZone` functie (niet meer nodig)
+- `sunSchedule` state (niet meer nodig voor display)
+
+### Technical Notes
+- `getMarketStatus()` berekent open/gesloten status en countdown in seconden
+- `formatCountdown(totalSeconds)` formatteert naar HH:MM:SS
+- `marketStatus` state met `isOpen` boolean en `secondsRemaining`
+- useEffect met 1-seconde interval voor live updates
+- Auto-theme switching op sunrise/sunset blijft intact (alleen display verwijderd)
+
+---
+
 ## [2.1.0] - 2026-01-22
 
 ### Added

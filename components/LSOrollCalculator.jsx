@@ -158,14 +158,70 @@ const getSunriseSunset = (date) => {
   };
 };
 
-const formatTimeForZone = (date, timeZone = CET_TIMEZONE) => {
-  if (!date) return '--:--';
-  return new Intl.DateTimeFormat('nl-NL', { timeZone, hour: '2-digit', minute: '2-digit' }).format(date);
-};
-
 const isFridayCET = () => {
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: CET_TIMEZONE, weekday: 'short' }).format(new Date());
   return weekday.toLowerCase().startsWith('fri');
+};
+
+const getMarketStatus = () => {
+  const now = new Date();
+  const nyTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).formatToParts(now);
+
+  const parts = {};
+  nyTime.forEach(p => { parts[p.type] = p.value; });
+
+  const weekday = parts.weekday;
+  const hour = parseInt(parts.hour, 10);
+  const minute = parseInt(parts.minute, 10);
+  const second = parseInt(parts.second, 10);
+
+  const currentMinutes = hour * 60 + minute;
+  const marketOpen = 9 * 60 + 30; // 9:30 AM ET
+  const marketClose = 16 * 60; // 4:00 PM ET
+
+  const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+  const isMarketHours = currentMinutes >= marketOpen && currentMinutes < marketClose;
+  const isOpen = !isWeekend && isMarketHours;
+
+  let targetTime;
+  if (isOpen) {
+    // Market is open, count down to close
+    const secondsUntilClose = (marketClose - currentMinutes) * 60 - second;
+    targetTime = secondsUntilClose;
+  } else {
+    // Market is closed, count down to open
+    let daysUntilOpen = 0;
+
+    if (weekday === 'Sat') {
+      daysUntilOpen = 2;
+    } else if (weekday === 'Sun') {
+      daysUntilOpen = 1;
+    } else if (currentMinutes >= marketClose) {
+      // After market close on weekday
+      daysUntilOpen = weekday === 'Fri' ? 3 : 1;
+    }
+    // Before market open on weekday
+
+    const secondsUntilOpen = daysUntilOpen * 24 * 60 * 60 +
+      (marketOpen - currentMinutes) * 60 - second;
+    targetTime = secondsUntilOpen < 0 ? secondsUntilOpen + 24 * 60 * 60 : secondsUntilOpen;
+  }
+
+  return { isOpen, secondsRemaining: Math.max(0, targetTime) };
+};
+
+const formatCountdown = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
 const LSOrollCalculator = () => {
@@ -175,14 +231,13 @@ const LSOrollCalculator = () => {
   const [customWeeks, setCustomWeeks] = useState('4');
   const [themeMode, setThemeMode] = useState('night');
   const [manualTheme, setManualTheme] = useState(null); // null = auto, 'day' | 'night' = manual override
-  const [sunSchedule, setSunSchedule] = useState({ sunrise: null, sunset: null });
+  const [marketStatus, setMarketStatus] = useState({ isOpen: false, secondsRemaining: 0 });
 
   useEffect(() => {
     let timer;
 
     const updateTheme = (referenceDate = new Date()) => {
       const { sunrise, sunset } = getSunriseSunset(referenceDate);
-      setSunSchedule({ sunrise, sunset });
 
       // Only auto-set theme if no manual override
       if (manualTheme === null) {
@@ -223,6 +278,16 @@ const LSOrollCalculator = () => {
     }
   }, [manualTheme]);
 
+  // Market countdown timer
+  useEffect(() => {
+    const updateMarket = () => {
+      setMarketStatus(getMarketStatus());
+    };
+    updateMarket();
+    const interval = setInterval(updateMarket, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const toggleTheme = () => {
     if (manualTheme === null) {
       // First click: switch to opposite of current
@@ -239,8 +304,6 @@ const LSOrollCalculator = () => {
 
   const friday = isFridayCET();
   const palette = themePalette[themeMode];
-  const sunriseLabel = formatTimeForZone(sunSchedule.sunrise);
-  const sunsetLabel = formatTimeForZone(sunSchedule.sunset);
 
   // Helper to get theme-aware status colors
   const getStatusColors = (status, tier) => {
@@ -706,8 +769,23 @@ const LSOrollCalculator = () => {
               </div>
             </div>
             <div style={{ fontSize: '10px', color: palette.label, display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span>🌅 {sunriseLabel} CET</span>
-              <span>🌇 {sunsetLabel} CET</span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.125rem 0.375rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: marketStatus.isOpen ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                  color: marketStatus.isOpen ? '#22c55e' : palette.label,
+                  fontFamily: 'monospace',
+                  fontWeight: '500'
+                }}
+              >
+                {marketStatus.isOpen ? '📈' : '⏳'}
+                {marketStatus.isOpen ? 'Sluit over: ' : 'Opent over: '}
+                {formatCountdown(marketStatus.secondsRemaining)}
+              </span>
               {manualTheme && (
                 <button
                   onClick={resetToAuto}
