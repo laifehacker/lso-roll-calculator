@@ -141,7 +141,8 @@ const isFridayCET = () => {
 const LSOrollCalculator = () => {
   const [strikePrice, setStrikePrice] = useState('');
   const [currentPrice, setCurrentPrice] = useState('');
-  const [premiumInput, setPremiumInput] = useState('');
+  const [premiums, setPremiums] = useState({ week1: '', week2: '', week3: '', weekN: '' });
+  const [customWeeks, setCustomWeeks] = useState('4');
   const [themeMode, setThemeMode] = useState('night');
   const [sunSchedule, setSunSchedule] = useState({ sunrise: null, sunset: null });
 
@@ -380,22 +381,40 @@ const LSOrollCalculator = () => {
     return '$' + strike.toFixed(2);
   };
 
-  const premiumCalculation = useMemo(() => {
-    if (!calculation || calculation.weeksToRoll === 0) return null;
-    const premium = parseFloat(premiumInput);
-    if (!premium || premium <= 0) return null;
+  const handlePremiumChange = (key, value) => {
+    setPremiums(prev => ({ ...prev, [key]: value }));
+  };
 
-    const weeks = calculation.weeksToRoll;
-    const perWeek = premium / weeks;
-    const isGood = perWeek >= 1;
+  const premiumComparison = useMemo(() => {
+    const strike = parseFloat(strikePrice);
+    if (!strike || strike <= 0) return { entries: [], best: null };
 
-    return {
-      total: premium,
-      weeks: weeks,
-      perWeek: perWeek,
-      isGood: isGood
-    };
-  }, [premiumInput, calculation]);
+    const weeks = parseInt(customWeeks) || 4;
+    const entries = [
+      { key: 'week1', weeks: 1, label: '+1 wk', premium: premiums.week1 },
+      { key: 'week2', weeks: 2, label: '+2 wk', premium: premiums.week2 },
+      { key: 'week3', weeks: 3, label: '+3 wk', premium: premiums.week3 },
+      { key: 'weekN', weeks: weeks, label: '+' + weeks + ' wk', premium: premiums.weekN }
+    ].map(entry => {
+      const premium = parseFloat(entry.premium);
+      const percentage = premium > 0 ? (premium / strike) * 100 : null;
+      const weeklyYield = percentage ? percentage / entry.weeks : null;
+      return {
+        ...entry,
+        date: getNextFriday(entry.weeks),
+        percentage,
+        weeklyYield,
+        valid: premium > 0
+      };
+    });
+
+    const validEntries = entries.filter(e => e.valid);
+    const best = validEntries.length > 0
+      ? validEntries.reduce((b, c) => (!b || c.weeklyYield > b.weeklyYield) ? c : b, null)
+      : null;
+
+    return { entries, best };
+  }, [strikePrice, premiums, customWeeks]);
 
   const getBgColor = (baseColor, opacity) => {
     const hex = baseColor.replace('#', '');
@@ -706,82 +725,65 @@ const LSOrollCalculator = () => {
                   </p>
                 )}
 
-                {/* Premium Input */}
+                {/* Premium Vergelijker */}
                 <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(148, 163, 184, 0.2)' }}>
-                  <div style={{ fontSize: '10px', color: palette.label, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
-                    Premium check (optioneel)
+                  <div style={{ fontSize: '10px', color: palette.label, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Premium vergelijker
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: '0.5rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: palette.placeholder,
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        %
-                      </span>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={premiumInput}
-                        onChange={(e) => setPremiumInput(e.target.value)}
-                        placeholder={calculation.weeksToRoll > 1 ? 'totaal' : '1.0'}
-                        style={{
-                          width: '100%',
-                          backgroundColor: palette.inputBg,
-                          border: '1px solid ' + palette.inputBorder,
-                          borderRadius: '0.375rem',
-                          padding: '0.5rem 0.5rem 0.5rem 1.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          color: palette.inputText,
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <span style={{ color: palette.label, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                      voor {calculation.weeksToRoll} {calculation.weeksToRoll === 1 ? 'week' : 'weken'}
-                    </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    {premiumComparison.entries.map((entry) => {
+                      const isBest = premiumComparison.best && entry.key === premiumComparison.best.key;
+                      return (
+                        <div key={entry.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {entry.key === 'weekN' ? (
+                            <div style={{ width: '3.5rem', display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                              <span style={{ fontSize: '0.7rem', color: palette.label }}>+</span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="52"
+                                value={customWeeks}
+                                onChange={(e) => setCustomWeeks(e.target.value)}
+                                style={{ width: '1.5rem', backgroundColor: palette.inputBg, border: '1px solid ' + palette.inputBorder, borderRadius: '0.25rem', padding: '0.125rem', fontSize: '0.7rem', color: palette.inputText, outline: 'none', textAlign: 'center' }}
+                              />
+                              <span style={{ fontSize: '0.7rem', color: palette.label }}>wk</span>
+                            </div>
+                          ) : (
+                            <div style={{ width: '3.5rem', fontSize: '0.7rem', color: palette.label, fontWeight: '500' }}>{entry.label}</div>
+                          )}
+                          <div style={{ fontSize: '0.6rem', color: palette.muted, width: '3rem' }}>{formatFriday(entry.date)}</div>
+                          <div style={{ position: 'relative', width: '4rem' }}>
+                            <span style={{ position: 'absolute', left: '0.375rem', top: '50%', transform: 'translateY(-50%)', color: palette.placeholder, fontSize: '0.65rem' }}>$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={entry.premium}
+                              onChange={(e) => handlePremiumChange(entry.key, e.target.value)}
+                              placeholder="0.00"
+                              style={{ width: '100%', backgroundColor: palette.inputBg, border: '1px solid ' + palette.inputBorder, borderRadius: '0.25rem', padding: '0.375rem 0.25rem 0.375rem 1rem', fontSize: '0.75rem', color: palette.inputText, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                          </div>
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem' }}>
+                            {entry.valid ? (
+                              <>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? '#22c55e' : palette.text }}>{entry.percentage.toFixed(2)}%</div>
+                                  <div style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
+                                </div>
+                                {isBest && <span style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: '600' }}>BEST</span>}
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: palette.muted }}>--</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-
-                  {/* Premium Result */}
-                  {premiumCalculation && (
-                    <div
-                      style={{
-                        marginTop: '0.5rem',
-                        padding: '0.5rem',
-                        borderRadius: '0.375rem',
-                        backgroundColor: premiumCalculation.isGood ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid ' + (premiumCalculation.isGood ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)')
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.75rem', color: palette.label }}>Per week:</span>
-                        <span
-                          style={{
-                            fontSize: '1rem',
-                            fontWeight: 'bold',
-                            color: premiumCalculation.isGood ? '#4ade80' : '#f87171'
-                          }}
-                        >
-                          {premiumCalculation.perWeek.toFixed(2)}%
-                          <span style={{ fontSize: '0.75rem', marginLeft: '0.25rem' }}>{premiumCalculation.isGood ? '✓' : '✗'}</span>
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '10px',
-                          color: premiumCalculation.isGood ? '#86efac' : '#fca5a5',
-                          marginTop: '0.25rem'
-                        }}
-                      >
-                        {premiumCalculation.isGood ? 'Target ≥1%/week behaald' : 'Onder target - overweeg korter te rollen'}
+                  {premiumComparison.best && (
+                    <div style={{ marginTop: '0.5rem', padding: '0.375rem 0.5rem', borderRadius: '0.375rem', backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: '600' }}>
+                        Beste: {premiumComparison.best.label} ({premiumComparison.best.weeklyYield.toFixed(2)}%/wk)
                       </div>
                     </div>
                   )}
