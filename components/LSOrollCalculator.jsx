@@ -406,7 +406,12 @@ const LSOrollCalculator = () => {
       tier = '20%+';
       color = '#DDD6FE';
       icon = '↻↻↻↻';
-      advice = 'Max 6wk, check 21 dagen voor expiry!';
+      // Calculate check date: 21 days before expiry
+      const expiryDate = getNextFriday(weeksToRoll);
+      const checkDate = new Date(expiryDate);
+      checkDate.setDate(checkDate.getDate() - 21);
+      const checkDateFormatted = checkDate.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+      advice = 'Max 6wk. Zet op ' + checkDateFormatted + ' een check in je agenda';
     }
 
     const targetFriday = getNextFriday(weeksToRoll);
@@ -549,14 +554,40 @@ const LSOrollCalculator = () => {
             max-width: 42rem;
             padding: 2.5rem;
           }
-          .lso-container .lso-title { font-size: 1.75rem; }
+          .lso-container .lso-title { font-size: 2rem; }
           .lso-container .lso-card { padding: 1.5rem; margin-bottom: 1.5rem; }
-          .lso-container .lso-result-percentage { font-size: 1.75rem; }
-          .lso-container .lso-roll-date { font-size: 1.375rem; }
-          .lso-container .lso-label { font-size: 12px; }
-          .lso-container .lso-friday-label { font-size: 12px; }
-          .lso-container .lso-friday-date { font-size: 1rem; }
-          .lso-container .lso-tier-text { font-size: 0.875rem; }
+          .lso-container .lso-result-percentage { font-size: 2rem; }
+          .lso-container .lso-roll-date { font-size: 1.5rem; }
+          .lso-container .lso-label { font-size: 14px; }
+          .lso-container .lso-friday-label { font-size: 14px; }
+          .lso-container .lso-friday-date { font-size: 1.125rem; }
+          .lso-container .lso-tier-text { font-size: 1rem; }
+          .lso-container .lso-footer { font-size: 12px; }
+          .lso-container .lso-advice { font-size: 13px; }
+          .lso-container .lso-premium-label { font-size: 0.875rem; }
+          .lso-container .lso-premium-yield { font-size: 0.9rem; }
+          .lso-container .lso-premium-total { font-size: 0.7rem; }
+          .lso-container .lso-premium-best { font-size: 0.7rem; }
+        }
+        @media (min-width: 1280px) {
+          .lso-container {
+            max-width: 48rem;
+            padding: 3rem;
+          }
+          .lso-container .lso-title { font-size: 2.25rem; }
+          .lso-container .lso-card { padding: 1.75rem; margin-bottom: 1.75rem; }
+          .lso-container .lso-result-percentage { font-size: 2.25rem; }
+          .lso-container .lso-roll-date { font-size: 1.75rem; }
+          .lso-container .lso-label { font-size: 15px; }
+          .lso-container .lso-friday-label { font-size: 15px; }
+          .lso-container .lso-friday-date { font-size: 1.25rem; }
+          .lso-container .lso-tier-text { font-size: 1.125rem; }
+          .lso-container .lso-footer { font-size: 13px; }
+          .lso-container .lso-advice { font-size: 14px; }
+          .lso-container .lso-premium-label { font-size: 1rem; }
+          .lso-container .lso-premium-yield { font-size: 1rem; }
+          .lso-container .lso-premium-total { font-size: 0.8rem; }
+          .lso-container .lso-premium-best { font-size: 0.8rem; }
         }
         .lso-container input {
           font-size: 1rem;
@@ -571,6 +602,18 @@ const LSOrollCalculator = () => {
           .lso-container input {
             font-size: 1.25rem;
             padding: 0.875rem 0.75rem 0.875rem 2.25rem;
+          }
+        }
+        @media (min-width: 1024px) {
+          .lso-container input {
+            font-size: 1.375rem;
+            padding: 1rem 0.875rem 1rem 2.5rem;
+          }
+        }
+        @media (min-width: 1280px) {
+          .lso-container input {
+            font-size: 1.5rem;
+            padding: 1.125rem 1rem 1.125rem 2.75rem;
           }
         }
       `}</style>
@@ -842,6 +885,7 @@ const LSOrollCalculator = () => {
                 </div>
                 {calculation.advice && (
                   <p
+                    className="lso-advice"
                     style={{
                       fontSize: '10px',
                       color: themeMode === 'day' ? '#475569' : 'rgba(148, 163, 184, 0.9)',
@@ -864,7 +908,7 @@ const LSOrollCalculator = () => {
                       return (
                         <div key={entry.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           {entry.key === 'weekN' ? (
-                            <div style={{ width: '3.5rem', display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                            <div className="lso-premium-label" style={{ width: '3.5rem', display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
                               <span style={{ fontSize: '0.7rem', color: palette.label }}>+</span>
                               <input
                                 type="number"
@@ -877,7 +921,7 @@ const LSOrollCalculator = () => {
                               <span style={{ fontSize: '0.7rem', color: palette.label }}>wk</span>
                             </div>
                           ) : (
-                            <div style={{ width: '3.5rem', fontSize: '0.7rem', color: palette.label, fontWeight: '500' }}>{entry.label}</div>
+                            <div className="lso-premium-label" style={{ width: '3.5rem', fontSize: '0.7rem', color: palette.label, fontWeight: '500' }}>{entry.label}</div>
                           )}
                           <div style={{ fontSize: '0.6rem', color: palette.muted, width: '3rem' }}>{formatFriday(entry.date)}</div>
                           <div style={{ position: 'relative', width: '4rem' }}>
@@ -895,13 +939,13 @@ const LSOrollCalculator = () => {
                             {entry.valid ? (
                               <>
                                 <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? palette.accentGreen : palette.text }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
-                                  <div style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.percentage.toFixed(2)}% tot</div>
+                                  <div className="lso-premium-yield" style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? palette.accentGreen : palette.text }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
+                                  <div className="lso-premium-total" style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.percentage.toFixed(2)}% tot</div>
                                 </div>
-                                {isBest && <span style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: palette.accentGreenBg, color: palette.accentGreen, fontWeight: '600' }}>BEST</span>}
+                                {isBest && <span className="lso-premium-best" style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: palette.accentGreenBg, color: palette.accentGreen, fontWeight: '600' }}>BEST</span>}
                               </>
                             ) : (
-                              <span style={{ fontSize: '0.7rem', color: palette.muted }}>--</span>
+                              <span className="lso-premium-empty" style={{ fontSize: '0.7rem', color: palette.muted }}>--</span>
                             )}
                           </div>
                         </div>
@@ -1070,7 +1114,7 @@ const LSOrollCalculator = () => {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '1rem', color: palette.footer, fontSize: '10px' }}>
+        <div className="lso-footer" style={{ textAlign: 'center', marginTop: '1rem', color: palette.footer, fontSize: '10px' }}>
           <p style={{ margin: '0 0 0.25rem 0', color: '#F97316', fontWeight: '500' }}>ALTIJD zelfde strike - nooit up/down</p>
           <p style={{ margin: '0 0 0.25rem 0' }}>4-6wk roll? Check 21 dagen voor expiry!</p>
           <p style={{ margin: '0 0 0.25rem 0' }}>CTM check: 1u voor market close</p>
