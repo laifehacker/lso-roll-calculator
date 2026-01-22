@@ -12,19 +12,34 @@ const themePalette = {
     pageBg: 'linear-gradient(180deg, #e2f1ff 0%, #f8fafc 35%, #ffffff 100%)',
     text: '#0f172a',
     muted: '#334155',
-    label: '#64748b',
-    card: 'rgba(255, 255, 255, 0.95)',
-    cardSubtle: '#f8fafc',
-    border: '#e2e8f0',
-    inputBg: '#f8fafc',
-    inputBorder: '#e2e8f0',
+    label: '#475569',
+    card: 'rgba(255, 255, 255, 0.98)',
+    cardSubtle: '#f1f5f9',
+    border: '#cbd5e1',
+    inputBg: '#f1f5f9',
+    inputBorder: '#cbd5e1',
     inputText: '#0f172a',
-    placeholder: '#94a3b8',
-    badgeBg: 'rgba(14, 165, 233, 0.14)',
-    badgeText: '#0ea5e9',
-    shadow: '0 12px 28px rgba(15, 23, 42, 0.12)',
-    calendarTile: 'rgba(226, 232, 240, 0.9)',
-    footer: '#475569'
+    placeholder: '#64748b',
+    badgeBg: 'rgba(14, 165, 233, 0.18)',
+    badgeText: '#0369a1',
+    shadow: '0 12px 28px rgba(15, 23, 42, 0.15)',
+    calendarTile: 'rgba(203, 213, 225, 0.95)',
+    footer: '#334155',
+    // Accent colors for day mode - darker for contrast
+    accentGreen: '#15803d',
+    accentGreenBg: 'rgba(21, 128, 61, 0.15)',
+    accentYellow: '#a16207',
+    accentYellowBg: 'rgba(161, 98, 7, 0.15)',
+    accentOrange: '#c2410c',
+    accentOrangeBg: 'rgba(194, 65, 12, 0.15)',
+    accentBlue: '#1d4ed8',
+    accentBlueBg: 'rgba(29, 78, 216, 0.15)',
+    accentPurple: '#7c3aed',
+    accentPurpleBg: 'rgba(124, 58, 237, 0.15)',
+    // Status text colors
+    successText: '#15803d',
+    warningText: '#a16207',
+    dangerText: '#c2410c'
   },
   night: {
     pageBg: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.08), transparent 30%), #020617',
@@ -42,7 +57,22 @@ const themePalette = {
     badgeText: '#c7d2fe',
     shadow: '0 12px 28px rgba(2, 6, 23, 0.45)',
     calendarTile: 'rgba(51, 65, 85, 0.3)',
-    footer: '#475569'
+    footer: '#475569',
+    // Accent colors for night mode - brighter for visibility
+    accentGreen: '#4ade80',
+    accentGreenBg: 'rgba(74, 222, 128, 0.2)',
+    accentYellow: '#fde047',
+    accentYellowBg: 'rgba(253, 224, 71, 0.2)',
+    accentOrange: '#fb923c',
+    accentOrangeBg: 'rgba(251, 146, 60, 0.2)',
+    accentBlue: '#60a5fa',
+    accentBlueBg: 'rgba(96, 165, 250, 0.2)',
+    accentPurple: '#a78bfa',
+    accentPurpleBg: 'rgba(167, 139, 250, 0.2)',
+    // Status text colors
+    successText: '#4ade80',
+    warningText: '#fde047',
+    dangerText: '#fb923c'
   }
 };
 
@@ -144,6 +174,7 @@ const LSOrollCalculator = () => {
   const [premiums, setPremiums] = useState({ week1: '', week2: '', week3: '', weekN: '' });
   const [customWeeks, setCustomWeeks] = useState('4');
   const [themeMode, setThemeMode] = useState('night');
+  const [manualTheme, setManualTheme] = useState(null); // null = auto, 'day' | 'night' = manual override
   const [sunSchedule, setSunSchedule] = useState({ sunrise: null, sunset: null });
 
   useEffect(() => {
@@ -153,10 +184,14 @@ const LSOrollCalculator = () => {
       const { sunrise, sunset } = getSunriseSunset(referenceDate);
       setSunSchedule({ sunrise, sunset });
 
-      const now = new Date();
-      const isDaytime = sunrise && sunset && now >= sunrise && now < sunset;
-      setThemeMode(isDaytime ? 'day' : 'night');
+      // Only auto-set theme if no manual override
+      if (manualTheme === null) {
+        const now = new Date();
+        const isDaytime = sunrise && sunset && now >= sunrise && now < sunset;
+        setThemeMode(isDaytime ? 'day' : 'night');
+      }
 
+      const now = new Date();
       let nextCheckTarget;
       if (!sunrise || !sunset) {
         nextCheckTarget = new Date(now.getTime() + MS_IN_DAY);
@@ -179,12 +214,58 @@ const LSOrollCalculator = () => {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [manualTheme]);
+
+  // Apply manual theme override
+  useEffect(() => {
+    if (manualTheme !== null) {
+      setThemeMode(manualTheme);
+    }
+  }, [manualTheme]);
+
+  const toggleTheme = () => {
+    if (manualTheme === null) {
+      // First click: switch to opposite of current
+      setManualTheme(themeMode === 'day' ? 'night' : 'day');
+    } else {
+      // Already manual: toggle between day/night
+      setManualTheme(manualTheme === 'day' ? 'night' : 'day');
+    }
+  };
+
+  const resetToAuto = () => {
+    setManualTheme(null);
+  };
 
   const friday = isFridayCET();
   const palette = themePalette[themeMode];
   const sunriseLabel = formatTimeForZone(sunSchedule.sunrise);
   const sunsetLabel = formatTimeForZone(sunSchedule.sunset);
+
+  // Helper to get theme-aware status colors
+  const getStatusColors = (status, tier) => {
+    if (status === 'otm' || status === 'itm-safe') {
+      return { color: palette.accentGreen, bg: palette.accentGreenBg };
+    }
+    if (status === 'ctm') {
+      return { color: palette.accentOrange, bg: palette.accentOrangeBg };
+    }
+    // ITM tiers
+    if (tier === '5-10%') {
+      return { color: palette.accentYellow, bg: palette.accentYellowBg };
+    }
+    if (tier === '10-15%') {
+      return { color: palette.accentGreen, bg: palette.accentGreenBg };
+    }
+    if (tier === '15-20%') {
+      return { color: palette.accentBlue, bg: palette.accentBlueBg };
+    }
+    if (tier === '20%+') {
+      return { color: palette.accentPurple, bg: palette.accentPurpleBg };
+    }
+    // Default for other ITM
+    return { color: palette.accentOrange, bg: palette.accentOrangeBg };
+  };
 
   const getNextFriday = (weeksOut) => {
     const today = new Date();
@@ -343,20 +424,20 @@ const LSOrollCalculator = () => {
     };
   }, [strikePrice, currentPrice, friday]);
 
-  // Roll tiers change based on day
+  // Roll tiers change based on day - use theme-aware colors
   const rollTiers = friday
     ? [
-        { range: 'OTM', desc: 'Verder OTM', weeks: 0, color: '#22c55e', label: 'Expire', icon: '✓' },
-        { range: 'CTM', desc: '≤1% ($0.25 min)', weeks: 1, color: '#F97316', label: 'Roll', icon: '⚠' },
-        { range: 'ITM', desc: 'In the money', weeks: 1, color: '#F97316', label: 'Roll', icon: '↻' }
+        { range: 'OTM', desc: 'Verder OTM', weeks: 0, color: palette.accentGreen, bg: palette.accentGreenBg, label: 'Expire', icon: '✓' },
+        { range: 'CTM', desc: '≤1% ($0.25 min)', weeks: 1, color: palette.accentOrange, bg: palette.accentOrangeBg, label: 'Roll', icon: '⚠' },
+        { range: 'ITM', desc: 'In the money', weeks: 1, color: palette.accentOrange, bg: palette.accentOrangeBg, label: 'Roll', icon: '↻' }
       ]
     : [
-        { range: 'OTM', desc: 'Boven strike', weeks: 0, color: '#22c55e', label: 'Hold', icon: '✓' },
-        { range: '0-5%', desc: 'ITM', weeks: 0, color: '#22c55e', label: 'Hold', icon: '✓' },
-        { range: '5-10%', desc: 'ITM', weeks: 1, color: '#FDE68A', label: '+1 wk', icon: '↻' },
-        { range: '10-15%', desc: 'ITM', weeks: 2, color: '#86EFAC', label: '+2 wk', icon: '↻↻' },
-        { range: '15-20%', desc: 'ITM', weeks: 3, color: '#93C5FD', label: '+3 wk', icon: '↻↻↻' },
-        { range: '20%+', desc: 'Deep ITM', weeks: 4, color: '#DDD6FE', label: 'Max 6wk', icon: '↻↻↻↻' }
+        { range: 'OTM', desc: 'Boven strike', weeks: 0, color: palette.accentGreen, bg: palette.accentGreenBg, label: 'Hold', icon: '✓' },
+        { range: '0-5%', desc: 'ITM', weeks: 0, color: palette.accentGreen, bg: palette.accentGreenBg, label: 'Hold', icon: '✓' },
+        { range: '5-10%', desc: 'ITM', weeks: 1, color: palette.accentYellow, bg: palette.accentYellowBg, label: '+1 wk', icon: '↻' },
+        { range: '10-15%', desc: 'ITM', weeks: 2, color: palette.accentGreen, bg: palette.accentGreenBg, label: '+2 wk', icon: '↻↻' },
+        { range: '15-20%', desc: 'ITM', weeks: 3, color: palette.accentBlue, bg: palette.accentBlueBg, label: '+3 wk', icon: '↻↻↻' },
+        { range: '20%+', desc: 'Deep ITM', weeks: 4, color: palette.accentPurple, bg: palette.accentPurpleBg, label: 'Max 6wk', icon: '↻↻↻↻' }
       ];
 
   const generateFridays = () => {
@@ -538,7 +619,8 @@ const LSOrollCalculator = () => {
               >
                 {friday ? 'VRIJDAG' : 'MA-DO'}
               </span>
-              <span
+              <button
+                onClick={toggleTheme}
                 style={{
                   fontSize: '10px',
                   padding: '0.125rem 0.5rem',
@@ -549,15 +631,38 @@ const LSOrollCalculator = () => {
                   letterSpacing: '0.02em',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.25rem'
+                  gap: '0.25rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s ease'
                 }}
+                title={manualTheme ? 'Klik om te wisselen (handmatig)' : 'Klik om handmatig te wisselen'}
               >
                 {themeMode === 'day' ? '☀ Dag' : '🌙 Nacht'}
-              </span>
+                {manualTheme && <span style={{ fontSize: '8px', opacity: 0.7 }}>•</span>}
+              </button>
             </div>
             <div style={{ fontSize: '10px', color: palette.label, display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span>🌅 {sunriseLabel} CET</span>
               <span>🌇 {sunsetLabel} CET</span>
+              {manualTheme && (
+                <button
+                  onClick={resetToAuto}
+                  style={{
+                    fontSize: '9px',
+                    padding: '0.125rem 0.375rem',
+                    borderRadius: '0.25rem',
+                    backgroundColor: 'transparent',
+                    color: palette.label,
+                    border: '1px solid ' + palette.border,
+                    cursor: 'pointer',
+                    opacity: 0.7
+                  }}
+                  title="Terug naar automatisch"
+                >
+                  Auto
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -662,12 +767,15 @@ const LSOrollCalculator = () => {
 
         {/* Result */}
         {calculation ? (
+          (() => {
+            const statusColors = getStatusColors(calculation.status, calculation.tier);
+            return (
           <div
             className="lso-card"
             style={{
               borderRadius: '0.75rem',
-              border: '1px solid ' + getBgColor(calculation.color, 0.3),
-              backgroundColor: getBgColor(calculation.color, 0.1),
+              border: '1px solid ' + statusColors.color + '40',
+              backgroundColor: statusColors.bg,
               padding: '0.75rem',
               marginBottom: '0.75rem',
               boxShadow: palette.shadow,
@@ -683,8 +791,8 @@ const LSOrollCalculator = () => {
                   gap: '0.375rem',
                   padding: '0.125rem 0.5rem',
                   borderRadius: '9999px',
-                  backgroundColor: getBgColor(calculation.color, 0.25),
-                  color: calculation.color,
+                  backgroundColor: statusColors.color + '25',
+                  color: statusColors.color,
                   fontSize: '0.75rem',
                   fontWeight: '600'
                 }}
@@ -693,7 +801,7 @@ const LSOrollCalculator = () => {
                 {calculation.status.toUpperCase()}
               </span>
               <div style={{ textAlign: 'right' }}>
-                <span className="lso-result-percentage" style={{ fontSize: '1.125rem', fontWeight: 'bold', color: calculation.color }}>
+                <span className="lso-result-percentage" style={{ fontSize: '1.125rem', fontWeight: 'bold', color: statusColors.color }}>
                   {calculation.percentage}%
                 </span>
                 <span style={{ color: palette.label, fontSize: '0.75rem', marginLeft: '0.25rem' }}>(${calculation.absoluteDiff})</span>
@@ -702,12 +810,12 @@ const LSOrollCalculator = () => {
 
             {/* Roll Advice */}
             {calculation.weeksToRoll > 0 ? (
-              <div style={{ borderRadius: '0.5rem', padding: '0.625rem', marginTop: '0.5rem', backgroundColor: getBgColor(calculation.color, 0.15) }}>
+              <div style={{ borderRadius: '0.5rem', padding: '0.625rem', marginTop: '0.5rem', backgroundColor: statusColors.color + '18' }}>
                 <div style={{ fontSize: '10px', color: palette.label, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
                   Roll naar
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="lso-roll-date" style={{ fontSize: '1rem', fontWeight: 'bold', color: calculation.color }}>
+                  <span className="lso-roll-date" style={{ fontSize: '1rem', fontWeight: 'bold', color: statusColors.color }}>
                     {calculation.targetDate} (vr)
                   </span>
                   <span style={{ fontSize: '0.875rem', fontWeight: '500', color: palette.muted }}>strike {getStrikeDisplay()}</span>
@@ -767,10 +875,10 @@ const LSOrollCalculator = () => {
                             {entry.valid ? (
                               <>
                                 <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? '#22c55e' : palette.text }}>{entry.percentage.toFixed(2)}%</div>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? palette.accentGreen : palette.text }}>{entry.percentage.toFixed(2)}%</div>
                                   <div style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
                                 </div>
-                                {isBest && <span style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: '600' }}>BEST</span>}
+                                {isBest && <span style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: palette.accentGreenBg, color: palette.accentGreen, fontWeight: '600' }}>BEST</span>}
                               </>
                             ) : (
                               <span style={{ fontSize: '0.7rem', color: palette.muted }}>--</span>
@@ -781,8 +889,8 @@ const LSOrollCalculator = () => {
                     })}
                   </div>
                   {premiumComparison.best && (
-                    <div style={{ marginTop: '0.5rem', padding: '0.375rem 0.5rem', borderRadius: '0.375rem', backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: '600' }}>
+                    <div style={{ marginTop: '0.5rem', padding: '0.375rem 0.5rem', borderRadius: '0.375rem', backgroundColor: palette.accentGreenBg, border: '1px solid ' + palette.accentGreen + '50' }}>
+                      <div style={{ fontSize: '0.7rem', color: palette.accentGreen, fontWeight: '600' }}>
                         Beste: {premiumComparison.best.label} ({premiumComparison.best.weeklyYield.toFixed(2)}%/wk)
                       </div>
                     </div>
@@ -790,14 +898,16 @@ const LSOrollCalculator = () => {
                 </div>
               </div>
             ) : (
-              <div style={{ borderRadius: '0.5rem', padding: '0.625rem', marginTop: '0.5rem', backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
+              <div style={{ borderRadius: '0.5rem', padding: '0.625rem', marginTop: '0.5rem', backgroundColor: statusColors.bg }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#4ade80' }}>✓</span>
-                  <span style={{ fontSize: '0.875rem', color: '#4ade80', fontWeight: '500' }}>{calculation.advice || 'Geen actie nodig'}</span>
+                  <span style={{ color: statusColors.color }}>✓</span>
+                  <span style={{ fontSize: '0.875rem', color: statusColors.color, fontWeight: '500' }}>{calculation.advice || 'Geen actie nodig'}</span>
                 </div>
               </div>
             )}
           </div>
+            );
+          })()
         ) : (
           <div
             style={{
@@ -859,9 +969,9 @@ const LSOrollCalculator = () => {
                     justifyContent: 'space-between',
                     padding: '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
-                    backgroundColor: getBgColor(tier.color, themeMode === 'day' ? 0.16 : 0.12),
+                    backgroundColor: tier.bg,
                     opacity: isActive ? 1 : 0.4,
-                    boxShadow: isActive ? '0 0 0 1px ' + tier.color : 'none'
+                    boxShadow: isActive ? '0 0 0 2px ' + tier.color : 'none'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
