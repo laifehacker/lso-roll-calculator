@@ -875,8 +875,8 @@ const LSOrollCalculator = () => {
                             {entry.valid ? (
                               <>
                                 <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? palette.accentGreen : palette.text }}>{entry.percentage.toFixed(2)}%</div>
-                                  <div style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: isBest ? palette.accentGreen : palette.text }}>{entry.weeklyYield.toFixed(2)}%/wk</div>
+                                  <div style={{ fontSize: '0.6rem', color: palette.muted }}>{entry.percentage.toFixed(2)}% tot</div>
                                 </div>
                                 {isBest && <span style={{ fontSize: '0.6rem', padding: '0.125rem 0.25rem', borderRadius: '0.25rem', backgroundColor: palette.accentGreenBg, color: palette.accentGreen, fontWeight: '600' }}>BEST</span>}
                               </>
